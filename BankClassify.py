@@ -24,7 +24,9 @@ class BankClassify():
         Arguments:
          - filename: filename of Santander-format file
         """
-        self.new_data = self._read_santander_file(filename)
+        #self.new_data = self._read_santander_file(filename)
+        self.new_data = self._read_ing_file(filename)
+
 
         self._ask_with_guess(self.new_data)
 
@@ -160,6 +162,53 @@ class BankClassify():
             elif category == 'Amount':
                 just_numbers = re.sub("[^0-9\.-]", "", data)
                 amounts.append(just_numbers.strip())
+
+        df = pd.DataFrame({'date':dates, 'desc':descs, 'amount':amounts})
+
+        df['amount'] = df.amount.astype(float)
+        df['desc'] = df.desc.astype(str)
+        df['date'] = df.date.astype(str)
+
+        return df
+
+    def _read_ing_file(self, filename):
+        """Read a file in the comma-separated format that ING provides downloads in.
+
+        Returns a pd.DataFrame with columns of 'date', 'desc' and 'amount'."""
+        with open(filename, errors='replace') as f:
+            lines = f.readlines()
+
+        dates = []
+        descs = []
+        amounts = []
+
+        for line in lines[1:]:
+
+            line = "".join(i for i in line if ord(i)<128)
+            if line.strip() == '':
+                continue
+
+            splitted = line.split("\",\"")
+
+            date = splitted[0].replace("\"", "")
+            description = splitted[1]
+            account = splitted[2]
+            secondAccount = splitted[3]
+            code = splitted[4]
+            afBij = splitted[5]
+            amount = splitted[6].replace(",", ".")
+            mutationType = splitted[7]
+            remarks = splitted[8].replace("\n", "")
+
+            amount = "-" + amount if afBij == "Af" else amount
+
+            print(date)
+            print(description)
+            print(amount)
+
+            dates.append(date)
+            descs.append(description + " / " + remarks)
+            amounts.append(amount)
 
         df = pd.DataFrame({'date':dates, 'desc':descs, 'amount':amounts})
 
